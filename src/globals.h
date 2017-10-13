@@ -3,19 +3,26 @@
  *
  */
 
+#ifndef GLOBALS_H
+#define GLOBALS_H
+
+#define MULTITHREADING  0   /* enable multithreading 0 = off, 1 = on */
+
 
 #include <SDL2/SDL.h>
 
 
-#ifndef GLOBALS_H
-#define GLOBALS_H
+typedef struct Image {
+    SDL_Surface *surface;
+    #if MULTITHREADING
+    pthread_mutex_t *mutex;
+    #endif
+} Image;
 
 
-int IMGWIDTH, IMGHEIGHT, PICDELAY;
+int IMGWIDTH, IMGHEIGHT, PICDELAY, OUTPUTLEVEL, PROGIMGS, MAXITERS;
 
-
-// functions
-int initGlobals();
+Image ORIG, IMG1, IMG2;
 
 
 #endif

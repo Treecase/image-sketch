@@ -3,25 +3,34 @@
  *
  */
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-
-
 #ifndef UTIL_H
 #define UTIL_H
 
 
-int getImageColours (SDL_Surface *image, Uint32 *container);
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 
-int imgCompare (SDL_Surface *image1, SDL_Surface *image2, int x0, int y0, int x1, int y1);
+#include "globals.h"
 
-void saveImage (SDL_Surface *image, char name[]);
+#if MULTITHREADING
+#include "threading.h"
+#endif
 
-void drawPixel (SDL_Surface *surface, int x, int y, Uint32 colour);
+void printUsage (char invokeName[]);
 
-Uint32 getPixel (SDL_Surface *surface, int x, int y);
+int getImageColours (Image *image, Uint32 *container);
 
-void drawLine (SDL_Surface *surface, int x0, int y0, int x1, int y1, Uint32 colour);
+int imgCompare (Image *image1, Image *image2, int x0, int y0, int x1, int y1);
+
+int testLine (Image *image, int x0, int y0, int x1, int y1, Uint32 lineColour);
+
+void saveImage (Image *image, char name[]);
+
+void drawPixel (Image *image, int x, int y, Uint32 colour);
+
+Uint32 getPixel (Image *image, int x, int y);
+
+void drawLine (Image *image, int x0, int y0, int x1, int y1, Uint32 colour);
 
 int initLibs();
 

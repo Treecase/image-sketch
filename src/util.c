@@ -4,15 +4,26 @@
  */
 
 #include "util.h"
-#include "globals.h"
 
+
+/* print usage information */
+void printUsage (char invokeName[]) {
+    printf ("Usage: %s [options]\n\n", invokeName);
+    puts ("-h, --help\t\tDisplay this information.");
+    puts ("-i, --image [FILE]\tUse FILE as the image.");
+    puts ("-d, --delay [INT]\tSet the number of iterations between progress images.");
+    puts ("-l, --limit [INT]\tSet the maximum number of iterations.");
+    puts ("-s, --silent\t\tNo output.");
+    puts ("-v, --verbose\t\tVerbose output.");
+    puts ("--no-output\t\tDisable progress images (overrides -d and --delay.");
+}
 
 /* compare two images, return the difference */
-int imgCompare (SDL_Surface *img1, SDL_Surface *img2, int x0, int y0, int x1, int y1) {
+int imgCompare (Image *img1, Image *img2, int x0, int y0, int x1, int y1) {
 
 
     int img1Colour, img2Colour, count;
-    img1Colour = img2Colour;
+    img1Colour = img2Colour = 0;
 
 
     /* Bresenham's line algorithm */
@@ -24,7 +35,6 @@ int imgCompare (SDL_Surface *img1, SDL_Surface *img2, int x0, int y0, int x1, in
     run1 = run2 = (deltax < 0) ?  -1: 1;    // L or R?
     rise1 = (deltay < 0) ? -1 : 1;          // D or U?
     rise2 = 0;
-
 
     // iterate up whichever dimension changes the most
     // (ie while i < deltax if deltax > deltay and vice vera)
@@ -39,6 +49,7 @@ int imgCompare (SDL_Surface *img1, SDL_Surface *img2, int x0, int y0, int x1, in
         run2 = 0;
     }
 
+    // algorithm
     numerator = longest/2;
     for (count = 0; count <= longest; ++count) {
         img1Colour += getPixel (img1, x0, y0);
@@ -55,22 +66,74 @@ int imgCompare (SDL_Surface *img1, SDL_Surface *img2, int x0, int y0, int x1, in
         }
     }
 
+    /* return the difference between the average colours
+        in the line */
     return abs ((img1Colour/count)-(img2Colour/count));
 }
 
-/* save image to disk */
-void saveImage (SDL_Surface *img, char name[]) {
-    IMG_SavePNG (img, name);
+/* tests whether we should draw a line or not */
+/*int testLine (SDL_Surface *img, int x0, int y0, int x1, int y1, Uint32 lineColour) {
+
+    Uint32 imgColour = 0;
+    int count;
+
+    /* Bresenham's line algorithm *//*
+    int deltax = x1 - x0;
+    int deltay = y1 - y0;
+    int run1, rise1, run2, rise2;
+    int longest, shortest, numerator;
+
+    run1 = run2 = (deltax < 0) ?  -1: 1;    // L or R?
+    rise1 = (deltay < 0) ? -1 : 1;          // D or U?
+    rise2 = 0;
+
+    // iterate up whichever dimension changes the most
+    // (ie while i < deltax if deltax > deltay and vice vera)
+    longest = abs (deltax);
+    shortest = abs (deltay);
+
+    if (longest < shortest) {
+        longest = abs (deltay);
+        shortest = abs (deltax);
+
+        rise2 = (deltay < 0) ? -1 : 1;
+        run2 = 0;
+    }
+
+    // algorithm
+    numerator = longest/2;
+    for (count = 0; count <= longest; ++count) {
+        imgColour += getPixel (img, x0, y0);
+        numerator += shortest;
+        if (numerator >= longest) {
+            numerator -= longest;
+            x0 += run1;
+            y0 += rise1;
+        }
+        else {
+            x0 += run2;
+            y0 += rise2;
+        }
+    }
+    return ((imgColour/count) - lineColour);
+}*/
+
+/* save image */
+void saveImage (Image *img, char name[]) {
+    IMG_SavePNG (img->surface, name);
 }
 
-/* **STOLEN** draw pixel on a surface at x,y
+/* draw pixel on a surface at x,y
     pixel format: 0xAABBGGRR */
-void drawPixel (SDL_Surface *surface, int x, int y, Uint32 pixel) {
+void drawPixel (Image *img, int x, int y, Uint32 pixel) {
     if (x <= 0 || x >= IMGWIDTH || y <= 0 || y >= IMGHEIGHT)
         return;
-    int bpp = surface->format->BytesPerPixel;
-    /* Here p is the address to the pixel we want to set */
-    Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * bpp;
+    int bpp = img->surface->format->BytesPerPixel;
+    /* get pixel address */
+    #if MULTITHREADING
+    pthread_mutex_lock (img->mutex + y * img->surface->pitch + x * bpp);
+    #endif
+    Uint8 *p = (Uint8 *)img->surface->pixels + y * img->surface->pitch + x * bpp;
 
     switch (bpp) {
     case 1:
@@ -98,17 +161,20 @@ void drawPixel (SDL_Surface *surface, int x, int y, Uint32 pixel) {
         *(Uint32 *)p = pixel;
         break;
     }
+    #if MULTITHREADING
+    pthread_mutex_unlock (img->mutex + y * img->surface->pitch + x * bpp);
+    #endif
 }
 
-/* **STOLEN** get pixel from a surface at x,y
+/* get pixel from a surface at x,y
     pixel format: 0xAABBGGRR */
-Uint32 getPixel (SDL_Surface *surface, int x, int y) {
+Uint32 getPixel (Image *img, int x, int y) {
     if (x <= 0 || x >= IMGWIDTH || y <= 0 || y >= IMGHEIGHT)
         return 0;
     
-    int bpp = surface->format->BytesPerPixel;
-    /* Here p is the address to the pixel we want to retrieve */
-    Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * bpp;
+    int bpp = img->surface->format->BytesPerPixel;
+    /* get pixel address */
+    Uint8 *p = (Uint8 *)img->surface->pixels + y * img->surface->pitch + x * bpp;
 
     switch (bpp) {
     case 1:
@@ -131,14 +197,14 @@ Uint32 getPixel (SDL_Surface *surface, int x, int y) {
         break;
 
     default:
-        return 0;       /* shouldn't happen, but avoids warnings */
+        return 0;
     }
 }
 
 /* draw a line using Bresenham's line algorithm */
-void drawLine (SDL_Surface *s, int x0, int y0, int x1, int y1, Uint32 c) {
+void drawLine (Image *img, int x0, int y0, int x1, int y1, Uint32 c) {
 
-    SDL_LockSurface (s);
+    SDL_LockSurface (img->surface);
 
     int deltax = x1 - x0;
     int deltay = y1 - y0;
@@ -148,7 +214,6 @@ void drawLine (SDL_Surface *s, int x0, int y0, int x1, int y1, Uint32 c) {
     run1 = run2 = (deltax < 0) ?  -1: 1;    // L or R?
     rise1 = (deltay < 0) ? -1 : 1;          // D or U?
     rise2 = 0;
-
 
     // iterate up whichever dimension changes the most
     // (ie while i < deltax if deltax > deltay and vice vera)
@@ -163,9 +228,10 @@ void drawLine (SDL_Surface *s, int x0, int y0, int x1, int y1, Uint32 c) {
         run2 = 0;
     }
 
+    // algorithm
     numerator = longest/2;
     for (int i = 0; i <= longest; ++i) {
-        drawPixel (s, x0, y0, c);
+        drawPixel (img, x0, y0, c);
         numerator += shortest;
         if (numerator >= longest) {
             numerator -= longest;
@@ -178,7 +244,7 @@ void drawLine (SDL_Surface *s, int x0, int y0, int x1, int y1, Uint32 c) {
         }
     }
 
-    SDL_UnlockSurface (s);
+    SDL_UnlockSurface (img->surface);
 }
 
 /* initialize libs */
