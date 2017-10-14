@@ -10,12 +10,7 @@
 
 #include "globals.h"
 #include "util.h"
-
-
-#if MULTITHREADING
 #include "threading.h"
-#include <pthread.h>
-#endif
 
 int main (int argc, char *argv[]) {
 
@@ -32,16 +27,12 @@ int main (int argc, char *argv[]) {
 
     // original image, working copy of image, image backbuffer
     extern Image ORIG, IMG1, IMG2;
-    #if MULTITHREADING
     pthread_mutex_t *origMutex, *img1Mutex, *img2Mutex;
-    #endif
     SDL_Surface *origSurf, *img1Surf, *img2Surf;
     origSurf = img1Surf, img2Surf = NULL;
 
     ORIG.surface = origSurf, IMG1.surface = img1Surf, IMG2.surface = img2Surf;
-    #if MULTITHREADING
     ORIG.mutex = origMutex, IMG1.mutex = img1Mutex, IMG2.mutex = img2Mutex;
-    #endif
 
 
     // skipped is the number of images skipped
@@ -53,11 +44,9 @@ int main (int argc, char *argv[]) {
     char *pathToImage = NULL;   // path to the image
 
 
-    #if MULTITHREADING
     int numThreads = 1;
     pthread_t *threads[numThreads];
-    ThreadArgs *tArgs[numThreads];
-    #endif
+    ThreadArgs tArgs[numThreads];
 
 
     PROGIMGS = 0;
@@ -114,6 +103,7 @@ int main (int argc, char *argv[]) {
     }
     IMGWIDTH = ORIG.surface->w;
     IMGHEIGHT = ORIG.surface->h;
+    printf ("w: %i h: %i\n", IMGWIDTH, IMGHEIGHT);
 
     (OUTPUTLEVEL > 1) ? puts ("creating buffers") : 0;
     // create the working and backbuffer images
@@ -127,12 +117,11 @@ int main (int argc, char *argv[]) {
     SDL_UnlockSurface (IMG1.surface);
     SDL_UnlockSurface (IMG2.surface);
 
-    #if MULTITHREADING
     // create image mutexes
     (OUTPUTLEVEL > 1) ? puts ("creating mutexes") : 0;
-    ORIG.mutex = malloc (sizeof(Uint32)*ORIG.surface->h*ORIG.surface->pitch);
-    ORIG.mutex = malloc (sizeof(Uint32)*IMG1.surface->h*IMG1.surface->pitch);
-    ORIG.mutex = malloc (sizeof(Uint32)*IMG2.surface->h*IMG2.surface->pitch);
+    ORIG.mutex = malloc (sizeof(pthread_mutex_t)*ORIG.surface->h*ORIG.surface->pitch);
+    IMG1.mutex = malloc (sizeof(pthread_mutex_t)*IMG1.surface->h*IMG1.surface->pitch);
+    IMG2.mutex = malloc (sizeof(pthread_mutex_t)*IMG2.surface->h*IMG2.surface->pitch);
 
     pthread_mutex_init (ORIG.mutex, NULL);
     pthread_mutex_init (IMG1.mutex, NULL);
@@ -143,24 +132,30 @@ int main (int argc, char *argv[]) {
     (OUTPUTLEVEL > 1) ? puts ("creating threads") : 0;
     for (int i = 0; i < numThreads; ++i) {
         threads[i] = malloc (sizeof(pthread_t));
-        tArgs[i] = malloc (sizeof(ThreadArgs));
-        tArgs[i]->minx = i*(IMGWIDTH / numThreads);
-        tArgs[i]->miny = i*(IMGHEIGHT / numThreads);
-        tArgs[i]->minx = (i+1)*(IMGWIDTH / numThreads);
-        tArgs[i]->miny = (i+1)*(IMGHEIGHT / numThreads);
-        pthread_create (threads[i], NULL, handleBlock, tArgs[i]);
+
+        tArgs[i].minx = i*(IMGWIDTH / numThreads);
+        tArgs[i].miny = i*(IMGHEIGHT / numThreads);
+        tArgs[i].maxx = (i+1)*(IMGWIDTH / numThreads);
+        tArgs[i].maxy = (i+1)*(IMGHEIGHT / numThreads);
+        pthread_create (threads[i], NULL, handleBlock, &tArgs[i]);
     }
 
     puts ("MAIN: ENTERING LOOP!");
-    while (1) {
-
-    }
-    #else
-
-    // main loop
-    iterations = imgCount = 0;
     SDL_Event e;
     int quit = 0;
+    while (!quit) {
+        // handle events
+        while (SDL_PollEvent (&e)) {
+            switch (e.type) {
+                case SDL_QUIT:
+                quit = 1;
+                break;
+            }
+        }
+    }
+
+    // main loop
+/*    iterations = imgCount = 0;
     while (iterations < MAXITERS && !quit) {
         // handle events
         while (SDL_PollEvent (&e)) {
@@ -180,7 +175,7 @@ int main (int argc, char *argv[]) {
         colour = getPixel (&ORIG, x0, y0);
 
         /* check if the line is a good change
-            and trash it if it isn't */
+            and trash it if it isn't *//*
         if (imgCompare (&ORIG, &IMG1, x0, y0, x1, y1)
           <= imgCompare (&ORIG, &IMG2, x0, y0, x1, y1))
             // draw the line
@@ -199,7 +194,11 @@ int main (int argc, char *argv[]) {
             (OUTPUTLEVEL > 1) ? printf ("saved image pics/%lu.png\n", imgCount) : 0;
         }
         iterations++;
-    }
+    }*/
+
+    void **tRet[numThreads];
+    for (int i = 0; i < numThreads; ++i)
+        pthread_join (*threads[i], tRet[i]);
 
     // save final image
     char outname[50];
@@ -210,7 +209,6 @@ int main (int argc, char *argv[]) {
     sprintf (outname, "%lu.png", iterations);
     saveImage (&IMG1, outname);
     (OUTPUTLEVEL) ? printf ("Done in %i iterations\n", iterations) : 0;
-    #endif
 
     // free the surfaces
     SDL_FreeSurface (ORIG.surface);
@@ -220,12 +218,16 @@ int main (int argc, char *argv[]) {
     SDL_FreeSurface (IMG2.surface);
     IMG2.surface = NULL;
 
-    #if MULTITHREADING
+    // deallocate threads
+    for (int i = 0; i < numThreads; ++i) {
+        free (threads[i]);
+//        free (tArgs[i]);
+    }
+
     // deallocate mutexes
     pthread_mutex_destroy (ORIG.mutex);
     pthread_mutex_destroy (IMG1.mutex);
     pthread_mutex_destroy (IMG2.mutex);
-    #endif
 
     // shutdown libs
     cleanup();

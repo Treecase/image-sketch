@@ -11,14 +11,14 @@ OBJHEADER=$(addprefix $(SRCDIR)/, $(addsuffix .h, $(OBJNAMES)))
 HEADERNAMES=globals
 HEADERS=$(addprefix $(SRCDIR)/, $(addsuffix .h, $(HEADERNAMES)))
 
-LIBS=SDL2 SDL2_image m pthread
+LIBS=SDL2 SDL2_image m
 
 
 $(NAME) : $(SRCDIR)/main.c $(OBJ) $(HEADERS)
-	gcc  $(SRCDIR)/main.c $(OBJ) -o $(NAME) $(addprefix -l, $(LIBS))
+	gcc  $(SRCDIR)/main.c $(OBJ) -o $(NAME) $(addprefix -l, $(LIBS)) -pthread
 
 $(OBJ) : $(OBJSRC) $(OBJHEADER) $(HEADERS)
-	gcc -c $(OBJSRC) $(addprefix -l, $(LIBS))
+	gcc -c $(OBJSRC) $(addprefix -l, $(LIBS)) -pthread
 	mv $(notdir $(OBJ)) $(OBJDIR)
 
 git :

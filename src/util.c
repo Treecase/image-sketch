@@ -130,9 +130,7 @@ void drawPixel (Image *img, int x, int y, Uint32 pixel) {
         return;
     int bpp = img->surface->format->BytesPerPixel;
     /* get pixel address */
-    #if MULTITHREADING
-    pthread_mutex_lock (img->mutex + y * img->surface->pitch + x * bpp);
-    #endif
+//    pthread_mutex_lock (img->mutex + y * img->surface->pitch + x * bpp);
     Uint8 *p = (Uint8 *)img->surface->pixels + y * img->surface->pitch + x * bpp;
 
     switch (bpp) {
@@ -161,9 +159,7 @@ void drawPixel (Image *img, int x, int y, Uint32 pixel) {
         *(Uint32 *)p = pixel;
         break;
     }
-    #if MULTITHREADING
-    pthread_mutex_unlock (img->mutex + y * img->surface->pitch + x * bpp);
-    #endif
+//    pthread_mutex_unlock (img->mutex + y * img->surface->pitch + x * bpp);
 }
 
 /* get pixel from a surface at x,y

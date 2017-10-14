@@ -11,10 +11,7 @@
 #include <SDL2/SDL_image.h>
 
 #include "globals.h"
-
-#if MULTITHREADING
 #include "threading.h"
-#endif
 
 void printUsage (char invokeName[]);
 

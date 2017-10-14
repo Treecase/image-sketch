@@ -1,4 +1,3 @@
-#if MULTITHREADING
 /*
  * Multithreading support
  *
@@ -11,46 +10,37 @@
     from (minx, miny) to (maxx, maxy) */
 void *handleBlock (void *argStruct) {
 
-    puts ("assigning args");
-    ThreadArgs *args = argStruct;
+    unsigned long int tID = pthread_self();
 
     int minx, miny, maxx, maxy;
 
-    puts ("assigning vars");
-    minx = args->minx;
-    miny = args->miny;
-    maxx = args->maxx;
-    maxy = args->maxy;
+    (OUTPUTLEVEL > 1) ? printf ("%p: assigning args\n", tID) : 0;
+    ThreadArgs *args = (ThreadArgs *)argStruct;
 
-    int *iterations, skipped;
+    minx = (int)args->minx;
+    miny = (int)args->miny;
+    maxx = (int)args->maxx;
+    maxy = (int)args->maxy;
+
+    printf ("%p: args are: %i %i %i %i\n", tID, minx, miny, maxx, maxy);
+
+    int iterations, skipped;
     int x0, y0, x1, y1;
     Uint32 colour;
 
-    (OUTPUTLEVEL) ? puts ("Entering main loop") : 0;
+    (OUTPUTLEVEL) ? printf ("%p: Entering main loop\n", tID) : 0;
     // main loop
-    skipped = 0;
-    SDL_Event e;
-    int quit = 0;
-    puts ("while");
-    while (*iterations < MAXITERS && !quit) {
-        // handle events
-        while (SDL_PollEvent (&e)) {
-            switch (e.type) {
-                case SDL_QUIT:
-                quit = 1;
-                break;
-            }
-        }
-        (OUTPUTLEVEL > 1) ? printf ("iteration #%i\n", *iterations) : 0;
+    iterations = skipped = 0;
+    while (iterations < MAXITERS) {
+
+        (OUTPUTLEVEL > 1) ? printf ("%p: iteration #%i\n", tID, iterations) : 0;
 
         // create a random line
-        x0 = minx + rand() % maxx, y0 = miny + rand() % maxy;
-        while (x1 <= maxx)
-            x1 = x0 + (rand() % (1 + IMGWIDTH/(10 + rand() % 50)));
-        while (y1 <= maxy)
-            y1 = y0 + (rand() % (1 + IMGHEIGHT/(10 + rand() % 50)));
+        x0 = minx + (rand() % maxx), y0 = miny + (rand() % maxy);
+            x1 = x0 + rand() % maxx;
+            y1 = y0 + rand() % maxy;
 
-        (OUTPUTLEVEL > 1) ? printf ("x0 %i, y0 %i,  x1 %i, y1 %i\n", x0, y0, x1, y1) : 0;
+        (OUTPUTLEVEL > 1) ? printf ("%p: x0 %i, y0 %i,  x1 %i, y1 %i\n", tID, x0, y0, x1, y1) : 0;
         colour = getPixel (&ORIG, x0, y0);
 
         /* check if the line is a good change
@@ -58,10 +48,11 @@ void *handleBlock (void *argStruct) {
         if (imgCompare (&ORIG, &IMG1, x0, y0, x1, y1)
          <= imgCompare (&ORIG, &IMG2, x0, y0, x1, y1)) {
             // draw the line
+            (OUTPUTLEVEL > 1) ? printf ("%p: Drawing line\n", tID) : 0;
             drawLine (&IMG1, x0, y0, x1, y1, colour);
         }
         else {
-            (OUTPUTLEVEL > 1) ? printf ("Skipped %i\n", ++skipped) : 0;
+            (OUTPUTLEVEL > 1) ? printf ("%p: Skipped %i\n", tID, ++skipped) : 0;
             continue;
         }
         blitArea (&IMG1, &IMG2, minx, miny, maxx, maxy);
@@ -73,9 +64,9 @@ void *handleBlock (void *argStruct) {
             saveImage (image1, outname);
             (OUTPUTLEVEL > 1) ? printf ("saved image pics/%lu.png\n", imgCount) : 0;
         }*/
-        *iterations++;
+        iterations++;
     }
-    pthread_exit (iterations);
+    pthread_exit (&iterations);
 }
 
 /* copy an area of img1 to img2 */
@@ -86,5 +77,3 @@ void blitArea (Image *img1, Image *img2, int minx, int miny, int maxx, int maxy)
             drawPixel (img2, x, y, getPixel (img1, x, y));
 
 }
-
-#endif

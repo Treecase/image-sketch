@@ -1,4 +1,3 @@
-#if MULTITHREADING
 /*
  * Multithreading support
  *
@@ -25,5 +24,4 @@ void *handleBlock (void *args);
 void blitArea (Image *img1, Image *img2, int minx, int miny, int maxx, int maxy);
 
 
-#endif
 #endif
