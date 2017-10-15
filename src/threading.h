@@ -12,9 +12,12 @@
 
 #include "globals.h"
 #include "util.h"
+#include "drawing.h"
 
 
 typedef struct ThreadArgs {
+    unsigned long tID;
+    unsigned long retVal;
     int minx, miny, maxx, maxy;
 } ThreadArgs;
 

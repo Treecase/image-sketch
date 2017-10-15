@@ -10,49 +10,48 @@
     from (minx, miny) to (maxx, maxy) */
 void *handleBlock (void *argStruct) {
 
-    unsigned long int tID = pthread_self();
-
+    unsigned long tID;
     int minx, miny, maxx, maxy;
 
-    (OUTPUTLEVEL > 1) ? printf ("%p: assigning args\n", tID) : 0;
     ThreadArgs *args = (ThreadArgs *)argStruct;
 
-    minx = (int)args->minx;
-    miny = (int)args->miny;
-    maxx = (int)args->maxx;
-    maxy = (int)args->maxy;
+    tID = args->tID;
+    minx = args->minx;
+    miny = args->miny;
+    maxx = args->maxx;
+    maxy = args->maxy;
 
-    printf ("%p: args are: %i %i %i %i\n", tID, minx, miny, maxx, maxy);
+    printLog (2, "%p: args are: %i %i %i %i\n", tID, minx, miny, maxx, maxy);
 
-    int iterations, skipped;
+    unsigned long iterations, skipped;
     int x0, y0, x1, y1;
     Uint32 colour;
 
-    (OUTPUTLEVEL) ? printf ("%p: Entering main loop\n", tID) : 0;
+    printLog (1, "%p: Entering main loop\n", tID);
     // main loop
     iterations = skipped = 0;
     while (iterations < MAXITERS) {
 
-        (OUTPUTLEVEL > 1) ? printf ("%p: iteration #%i\n", tID, iterations) : 0;
+        printLog (2, "%p: iteration #%i\n", tID, iterations);
 
         // create a random line
         x0 = minx + (rand() % maxx), y0 = miny + (rand() % maxy);
             x1 = x0 + rand() % maxx;
             y1 = y0 + rand() % maxy;
 
-        (OUTPUTLEVEL > 1) ? printf ("%p: x0 %i, y0 %i,  x1 %i, y1 %i\n", tID, x0, y0, x1, y1) : 0;
+        printLog (2, "%p: x0 %i, y0 %i,  x1 %i, y1 %i\n", tID, x0, y0, x1, y1);
         colour = getPixel (&ORIG, x0, y0);
 
         /* check if the line is a good change
             and trash it if it isn't */
-        if (imgCompare (&ORIG, &IMG1, x0, y0, x1, y1)
-         <= imgCompare (&ORIG, &IMG2, x0, y0, x1, y1)) {
+        if (compare[SHAPE] (&ORIG, &IMG1, x0, y0, x1, y1, colour)
+          < compare[SHAPE] (&ORIG, &IMG2, x0, y0, x1, y1, 0)) {
             // draw the line
-            (OUTPUTLEVEL > 1) ? printf ("%p: Drawing line\n", tID) : 0;
-            drawLine (&IMG1, x0, y0, x1, y1, colour);
+            printLog (2, "%p: Drawing line\n", tID);
+            draw[SHAPE] (&IMG1, x0, y0, x1, y1, colour);
         }
         else {
-            (OUTPUTLEVEL > 1) ? printf ("%p: Skipped %i\n", tID, ++skipped) : 0;
+            printLog (2, "%p: Skipped %i\n", tID, ++skipped);
             continue;
         }
         blitArea (&IMG1, &IMG2, minx, miny, maxx, maxy);
@@ -62,11 +61,13 @@ void *handleBlock (void *argStruct) {
             char outname[50];
             sprintf (outname, "pics/%lu.png", imgCount++);
             saveImage (image1, outname);
-            (OUTPUTLEVEL > 1) ? printf ("saved image pics/%lu.png\n", imgCount) : 0;
+            printLog (2, "saved image pics/%lu.png\n", imgCount);
         }*/
         iterations++;
     }
-    pthread_exit (&iterations);
+    printLog (1, "%p: FINISHED (did %lu iterations)\n", tID, iterations);
+    ((ThreadArgs *)argStruct)->retVal = iterations;
+    pthread_exit (NULL);
 }
 
 /* copy an area of img1 to img2 */
