@@ -23,7 +23,7 @@ void drawCircle (Image *image, int x0, int y0, int radius, int dummy, Uint32 col
 int testCircle (Image *image1, Image *image2, int x0, int y0, int radius, int dummy, Uint32 colour);
 
 void drawEmptyCircle (Image *image, int x0, int y0, int radius, int dummy, Uint32 colour);
-int testEmptyCircle (Image *image1, Image *image2, int x0, int y0, int radius, int dummy);
+int testEmptyCircle (Image *image1, Image *image2, int x0, int y0, int radius, int dummy, Uint32 colour);
 
 
 #endif

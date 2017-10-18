@@ -10,7 +10,7 @@
 int genXY (int shape, int xy0, int limit) {
     switch (shape) {
     case SHAPES_LINE:
-        return xy0 + (rand() % (1 + IMGWIDTH/(10 + rand() % limit)));
+        return xy0 + (rand() % limit);
 
     case SHAPES_CIRCLE:
         return rand() % limit;
@@ -25,6 +25,8 @@ void printUsage (char invokeName[]) {
     puts ("-d, --delay [INT]\tSet the number of iterations between progress images.");
     puts ("-l, --limit [INT]\tSet the maximum number of iterations.");
     puts ("-t, --threads [INT]\tSet the number of threads to use.");
+    puts ("--shape [INT]\t\tWhich shape to use.\n\t\t\t0 = Line, 1 = Circle, 2 = Unfilled Circle\n");
+    puts ("--size-limit [INT]\tSize limit of the shape");
     puts ("-s, --silent\t\tNo output.");
     puts ("-v, --verbose\t\tVerbose output.");
     puts ("--no-output\t\tDisable progress images (overrides -d and --delay.");

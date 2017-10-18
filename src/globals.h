@@ -18,6 +18,7 @@ typedef struct Image {
 enum Shapes {
     SHAPES_LINE,
     SHAPES_CIRCLE,
+    SHAPES_EMPTYCIRCLE,
     SHAPES_LENGTH
 } SHAPE;
 

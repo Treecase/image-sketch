@@ -165,7 +165,7 @@ int testLine (Image *img1, Image *img2, int x0, int y0, int x1, int y1, Uint32 c
     numerator = longest/2;
     for (count = 0; count <= longest; ++count) {
         img1Colour += getPixel (img1, x0, y0);
-        img2Colour += getPixel (img2, x0, y0);
+        img2Colour += (c) ? c : getPixel (img2, x0, y0);
         numerator += shortest;
         if (numerator >= longest) {
             numerator -= longest;
@@ -177,9 +177,6 @@ int testLine (Image *img1, Image *img2, int x0, int y0, int x1, int y1, Uint32 c
             y0 += rise2;
         }
     }
-
-    if (c)
-        img2Colour = count*c;
 
     /* return the difference between the average colours
         in the line */
@@ -242,7 +239,7 @@ int testCircle (Image *img1, Image *img2, int x0, int y0, int r, int dummy, Uint
             for (int m1 = -1; m1 <= 1; m1 += 2)
                 for (int m2 = -1; m2 <= 1; m2 += 2) {
                     img1Colour += getPixel (img1, x0 + (m1*x1), y0 + (m2*y));
-                    img2Colour += getPixel (img2, x0 + (m1*y), y0 + (m2*x1));
+                    img2Colour += (c) ? c : getPixel (img2, x0 + (m1*y), y0 + (m2*x1));
                 }
 
         if (err <= 0) {
@@ -256,8 +253,6 @@ int testCircle (Image *img1, Image *img2, int x0, int y0, int r, int dummy, Uint
             err += (-r << 1) + dx;
         }
     }
-    if (c)
-        img2Colour = count*c;
 
     return abs ((img1Colour/count)-(img2Colour/count));
 }
@@ -295,7 +290,7 @@ void drawEmptyCircle (Image *img, int x0, int y0, int r, int dummy, Uint32 c) {
 }
 
 /* compare an unfilled circle from two images, return the difference */
-int testEmptyCircle (Image *img1, Image *img2, int x0, int y0, int r, int dummy) {
+int testEmptyCircle (Image *img1, Image *img2, int x0, int y0, int r, int dummy, Uint32 c) {
 
     Uint32 img1Colour, img2Colour;
     img1Colour = img2Colour = 0;
@@ -314,8 +309,8 @@ int testEmptyCircle (Image *img1, Image *img2, int x0, int y0, int r, int dummy)
             for (int m2 = -1; m2 <= 1; m2 += 2) {
                 img1Colour += getPixel (img1, x0 + (m1*x), y0 + (m2*y));
                 img1Colour += getPixel (img1, x0 + (m1*y), y0 + (m2*x));
-                img2Colour += getPixel (img2, x0 + (m1*x), y0 + (m2*y));
-                img2Colour += getPixel (img2, x0 + (m1*y), y0 + (m2*x));
+                img2Colour += (c) ? c : getPixel (img2, x0 + (m1*x), y0 + (m2*y));
+                img2Colour += (c) ? c : getPixel (img2, x0 + (m1*y), y0 + (m2*x));
             }
 
         if (err <= 0) {

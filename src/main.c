@@ -25,9 +25,11 @@ int main (int argc, char *argv[]) {
 
     draw[SHAPES_LINE] = drawLine;
     draw[SHAPES_CIRCLE] = drawCircle;
+    draw[SHAPES_EMPTYCIRCLE] = drawEmptyCircle;
 
     compare[SHAPES_LINE] = testLine;
     compare[SHAPES_CIRCLE] = testCircle;
+    compare[SHAPES_EMPTYCIRCLE] = testEmptyCircle;
 
 
     /* picdelay is # of iters between progress images
@@ -51,7 +53,7 @@ int main (int argc, char *argv[]) {
 
 
     // skipped is the number of images skipped
-    unsigned long iterations, imgCount, skipped;
+    unsigned long iterations, imgCount, skipped, limit;
     int x0, y0, x1, y1;         // line coords
 
     Uint32 colour;              // line colour
@@ -93,6 +95,14 @@ int main (int argc, char *argv[]) {
         // number of threads to use
         else if (ac+1 < argc && !strcmp (argv[ac], "-t") || !strcmp (argv[ac], "--threads"))
             NUMTHREADS = atoi (argv[++ac]);
+
+        // the shape to use
+        else if (ac+1 < argc && !strcmp (argv[ac], "--shape"))
+            SHAPE = atoi (argv[++ac]);
+
+        // size limit of the shape
+        else if (ac+1 < argc && !strcmp (argv[ac], "--size-limit"))
+            limit = atoi (argv[++ac]);
 
         // no output
         else if (!strcmp (argv[ac], "-s") || !strcmp (argv[ac], "--silent"))
@@ -191,7 +201,7 @@ int main (int argc, char *argv[]) {
         printLog (DEFAULT, "NOT USING MULTITHREADING\n");
         // main loop
         int quit = 0;
-        int limit = 50;
+        limit = (limit) ? limit : 100;
         SDL_Event e;
         iterations = imgCount = 0;
         while (iterations < MAXITERS && !quit) {
@@ -210,7 +220,7 @@ int main (int argc, char *argv[]) {
             x1 = genXY (SHAPE, x0, limit);
             y1 = genXY (SHAPE, y0, limit);
             printLog (VERBOSE, "x0 %i, y0 %i,  x1 %i, y1 %i\n", x0, y0, x1, y1);
-            colour = getPixel (&ORIG, x0, y0);
+            colour = getPixel (&ORIG, x0, y0);  // midpoint = (n1+n2)/2
 
             printLog (VERBOSE, "Comparing imgs\n");
 
@@ -233,7 +243,7 @@ int main (int argc, char *argv[]) {
                 saveImage (&IMG1, outname);
                 printLog (VERBOSE, "saved image pics/%lu.png\n", imgCount);
             }
-            if ((limit >> 1) > 1 && iterations > 0 && iterations % (MAXITERS/8) == 0) {
+            if ((limit >> 1) > 1 && iterations > 0 && iterations % (MAXITERS/5) == 0) {
                 limit >>= 1;
             }
             iterations++;
@@ -248,7 +258,8 @@ int main (int argc, char *argv[]) {
     }
     sprintf (outname, "%lu.png", iterations);
     saveImage (&IMG1, outname);
-    printLog (DEFAULT, "Done in %i iterations\n", iterations);
+    printLog (DEFAULT, "\nDone in %i iterations\n", iterations);
+    printLog (DEFAULT, "Skipped %i total\n", skipped);
 
     // free the surfaces
     SDL_FreeSurface (ORIG.surface);
